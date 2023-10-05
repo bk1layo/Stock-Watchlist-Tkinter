@@ -44,19 +44,24 @@ def get_input():
     tkMB.showinfo("Ticker Added", tick.upper() + " has been added to the watchlist.")
 
 def updatePrice():
-    price = cursor.execute("SELECT price FROM tickers")
-    stock_price = cursor.fetchall()
-    empt_ticks = " "    
+    cursor.execute("SELECT tick FROM tickers")
+    tickers = cursor.fetchall()
 
-    for i in stock_price:
-        cursor.execute("SELECT price FROM tickers")
-        price_catch = cursor.fetchall()
-        empt_ticks += str(i)
-        print(empt_ticks)
+    for ticker in tickers:
+        tick = ticker[0]
+        try:
+            ticker_data = yf.Ticker(tick)
+            info = ticker_data.history(period='1d')
+            price = info['Close'][0]
+            priceRound = round(price, 2)
 
-        """for j in i:
-            updatedPrice = cursor.execute("")
-            cursor.execute("UPDATE tickers SET price = %s WHERE price = %s", (updatedPrice ,price))"""
+            cursor.execute("UPDATE tickers SET price = ? WHERE tick = ?", (priceRound, tick))
+            conn.commit()
+        except Exception as e:
+            tkMB.showerror("Error", f"Error updating price for {tick}: {e}")
+
+    tkMB.showinfo("Prices Updated", "Prices in the watchlist have been updated.")
+    
 def see_list():
     cursor.execute("SELECT * FROM tickers")
     all_stocks = cursor.fetchall()
@@ -65,7 +70,14 @@ def see_list():
 
     for i in all_stocks:
         empt_str += str(i[0]) + " " + str(i[1]) + "\n"
-    tkMB.showinfo('Stock', timeDate + currentDate.strftime("%A, %b %d, %Y")+" "+time.cget("text") + "\n" + "\n" + empt_str.upper())
+
+    list_topLevel = tk.Toplevel(window)
+    list_topLevel.geometry('250x175')
+
+    topLevel_label1 = tk.Label(list_topLevel, text=(timeDate + currentDate.strftime("%A, %b %d, %Y")+" "+time.cget("text") + "\n" + "\n" + empt_str.upper()))
+    refreshBut = tk.Button(list_topLevel, text="Refresh Price", command=updatePrice)
+    refreshBut.pack()
+    topLevel_label1.pack()
 
 def clear_list():
     cursor.execute("DELETE FROM tickers")
@@ -84,6 +96,6 @@ inputBut.pack()
 seeListBut.pack()
 clearListBut.pack()
 
-updatePrice()
+
 realtimeClock()
 window.mainloop()
