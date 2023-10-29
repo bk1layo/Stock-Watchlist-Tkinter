@@ -25,7 +25,8 @@ def realtimeClock():
 
 def get_input():
     tick = entry.get()
-
+    print(tick)
+    
     try:
         ticker = yf.Ticker(tick)
         info = ticker.history(period='1d')
